@@ -1,6 +1,6 @@
 import os
 
-OPENAQ_API_KEY = "592da2f4df898124a2024c99f033cbde2474f89e15fe1f14b9fa6c254714be22"
+#OPENAQ_API_KEY = 
 LOCATION_ID = 10580
 
 # Folder na dane
