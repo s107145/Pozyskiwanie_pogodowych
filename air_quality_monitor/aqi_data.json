@@ -1,0 +1,20 @@
+[
+    {
+        "url": "https://air-quality.com/place/poland/opole/bb703a04?lang=en&standard=aqi_us",
+        "proxy_used": "93.190.206.3:8080",
+        "aqi": null,
+        "pollutants": {}
+    },
+    {
+        "url": "https://air-quality.com/place/poland/opole/bb703a04?lang=en&standard=aqi_us",
+        "proxy_used": "51.158.68.68:8811",
+        "aqi": null,
+        "pollutants": {}
+    },
+    {
+        "url": "https://air-quality.com/place/poland/opole/bb703a04?lang=en&standard=aqi_us",
+        "proxy_used": "93.190.206.3:8080",
+        "aqi": null,
+        "pollutants": {}
+    }
+]

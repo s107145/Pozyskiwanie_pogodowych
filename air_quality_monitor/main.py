@@ -76,44 +76,64 @@ def show_historical_summary(data: dict):
     print("=========================================\n")
 
 
-
-
 def main():
-    print("======================================")
-    print("  Air Quality Monitor – OpenAQ")
-    print("======================================")
+    def main():
+        print("======================================")
+        print("  Air Quality Monitor – OpenAQ")
+        print("======================================")
 
-    # 1. Dane historyczne: wczytaj lub pobierz nowe
-    saved = load_historical_data()
-    use_saved = False
+        # 1. Dane historyczne: wczytaj lub pobierz nowe
+        saved = load_historical_data()
+        use_saved = False
 
-    if saved:
-        print(f"\nZnaleziono zapisane dane historyczne.")
-        answer = input("Użyć zapisanych danych historycznych? (tak/nie): ").strip().lower()
-        if answer in ["", "tak", "t", "yes", "y"]:
-            use_saved = True
+        if saved:
+            print(f"\nZnaleziono zapisane dane historyczne.")
+            answer = input("Użyć zapisanych danych historycznych? (tak/nie): ").strip().lower()
+            if answer in ["", "tak", "t", "yes", "y"]:
+                use_saved = True
 
-    if not use_saved:
-        date_from, date_to = ask_date_range()
-        saved = get_historical_data(date_from, date_to)
+        if not use_saved:
+            date_from, date_to = ask_date_range()
+            saved = get_historical_data(date_from, date_to)
 
-    # POKAŻ PODSUMOWANIE DANYCH HISTORYCZNYCH
-    if saved:
-        show_historical_summary(saved)
-    else:
-        print("\nBrak danych historycznych do wyświetlenia.\n")
+        # POKAŻ PODSUMOWANIE DANYCH HISTORYCZNYCH
+        if saved:
+            show_historical_summary(saved)
+        else:
+            print("\nBrak danych historycznych do wyświetlenia.\n")
+            return  # zakończ, jeśli brak danych
 
-    # 2. Monitorowanie danych aktualnych
-    print("\n=== Dane aktualne ===")
-    freq = input("Podaj częstotliwość pobierania (sekundy) [60]: ").strip()
-    if not freq:
-        freq = "60"
-    try:
-        freq_int = int(freq)
-    except ValueError:
-        freq_int = 60
+        import pandas as pd
+        from utils.features import clean_invalid, add_features, normalize, standardize
 
-    run_current_monitoring(freq_int)
+        # Zamień results -> DataFrame
+        df = pd.json_normalize(saved["results"])
+
+        df = clean_invalid(df)
+        df = add_features(df)
+        df = normalize(df)
+        df = standardize(df)
+
+        # Wybrane kolumny do wyświetlenia
+        columns_to_show = ['parameter.name', 'value', 'parameter.units',  'value_norm', 'value_std']
+
+        print("\n=== Przykładowe nowe cechy (wybrane kolumny) ===")
+        print(df[columns_to_show].head(10))
+
+        # 2. Monitorowanie danych aktualnych
+        print("\n=== Dane aktualne ===")
+        freq = input("Podaj częstotliwość pobierania (sekundy) [60]: ").strip()
+        if not freq:
+            freq = "60"
+        try:
+            freq_int = int(freq)
+        except ValueError:
+            freq_int = 60
+
+        run_current_monitoring(freq_int)
+
+    if __name__ == "__main__":
+        main()
 
 
 if __name__ == "__main__":

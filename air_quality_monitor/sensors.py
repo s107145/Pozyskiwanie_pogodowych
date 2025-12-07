@@ -189,7 +189,21 @@ def print_sensor_summary(measurements, sensor_id, parameter_name):
     # 5 najnowszych pomiarów
     print("       Ostatnie 5 pomiarów:")
     for i, m in enumerate(measurements[-5:], 1):
-        dt_obj = m.get("datetime") or m.get("date")
-        dt = dt_obj.get("utc") if isinstance(dt_obj, dict) else dt_obj
+        period = m.get("period", {})
+        dt_obj = None
+
+        # Spróbuj datetimeTo
+        if "datetimeTo" in period and isinstance(period["datetimeTo"], dict):
+            dt_obj = period["datetimeTo"].get("utc") or period["datetimeTo"].get("local")
+
+        # Jeśli brak To – spróbuj From
+        if not dt_obj and "datetimeFrom" in period and isinstance(period["datetimeFrom"], dict):
+            dt_obj = period["datetimeFrom"].get("utc") or period["datetimeFrom"].get("local")
+
+        # Gdyby nadal nic — fallback
+        if not dt_obj:
+            dt_obj = "BRAK_DATY"
+
+        dt = dt_obj
         value = m.get("value")
-        print(f"         {i}. {dt} → {value:.2f}")
+        print(f"         {i}.  {value:.2f}")
