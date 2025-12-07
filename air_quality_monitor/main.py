@@ -77,20 +77,20 @@ def show_historical_summary(data: dict):
 
 
 def main():
-    def main():
-        print("======================================")
-        print("  Air Quality Monitor – OpenAQ")
-        print("======================================")
 
-        # 1. Dane historyczne: wczytaj lub pobierz nowe
-        saved = load_historical_data()
-        use_saved = False
+    print("======================================")
+    print("  Air Quality Monitor – OpenAQ")
+    print("======================================")
 
-        if saved:
-            print(f"\nZnaleziono zapisane dane historyczne.")
-            answer = input("Użyć zapisanych danych historycznych? (tak/nie): ").strip().lower()
-            if answer in ["", "tak", "t", "yes", "y"]:
-                use_saved = True
+    # 1. Dane historyczne: wczytaj lub pobierz nowe
+    saved = load_historical_data()
+    use_saved = False
+
+    if saved:
+        print(f"\nZnaleziono zapisane dane historyczne.")
+        answer = input("Użyć zapisanych danych historycznych? (tak/nie): ").strip().lower()
+        if answer in ["", "tak", "t", "yes", "y"]:
+            use_saved = True
 
         if not use_saved:
             date_from, date_to = ask_date_range()
@@ -103,22 +103,21 @@ def main():
             print("\nBrak danych historycznych do wyświetlenia.\n")
             return  # zakończ, jeśli brak danych
 
+            # === FEATURE ENGINEERING ===
         import pandas as pd
-        from utils.features import clean_invalid, add_features, normalize, standardize
+        from utils.features import prepare_features
 
-        # Zamień results -> DataFrame
         df = pd.json_normalize(saved["results"])
+        df = prepare_features(df)
 
-        df = clean_invalid(df)
-        df = add_features(df)
-        df = normalize(df)
-        df = standardize(df)
-
-        # Wybrane kolumny do wyświetlenia
-        columns_to_show = ['parameter.name', 'value', 'parameter.units',  'value_norm', 'value_std']
+        columns_to_show = ["parameter.name", "value", "parameter.units", "value_norm", "value_std"]
 
         print("\n=== Przykładowe nowe cechy (wybrane kolumny) ===")
-        print(df[columns_to_show].head(10))
+
+        # osobno dla każdego parametru (czytelniej)
+        for param_name, group in df.groupby("parameter.name"):
+            print(f"\n--- {param_name.upper()} ---")
+            print(group[columns_to_show].head(5))
 
         # 2. Monitorowanie danych aktualnych
         print("\n=== Dane aktualne ===")
@@ -132,8 +131,7 @@ def main():
 
         run_current_monitoring(freq_int)
 
-    if __name__ == "__main__":
-        main()
+
 
 
 if __name__ == "__main__":
