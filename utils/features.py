@@ -1,42 +1,7 @@
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
-def clean_invalid(df):
-    """Usuwa inf, zamienia je na NaN, usuwa duplikaty."""
-    df = df.replace([np.inf, -np.inf], np.nan)
-    df = df.drop_duplicates()
-    return df
 
-
-def add_features(df):
-    """
-    Tworzy dodatkowe cechy:
-    - zmiana wartości (diff)
-    - średnia krocząca
-    - kategoria jakości powietrza
-    """
-    if "value" in df.columns:
-        df["value_diff"] = df["value"].diff()
-        df["rolling_mean_3"] = df["value"].rolling(window=3).mean()
-        df["rolling_mean_6"] = df["value"].rolling(window=6).mean()
-
-    return df
-
-
-def normalize(df):
-    """Normalizacja 0–1."""
-    if "value" in df.columns:
-        scaler = MinMaxScaler()
-        df["value_norm"] = scaler.fit_transform(df[["value"]])
-    return df
-
-
-def standardize(df):
-    """Standaryzacja (mean=0, std=1)."""
-    if "value" in df.columns:
-        scaler = StandardScaler()
-        df["value_std"] = scaler.fit_transform(df[["value"]])
-    return df
 
 def prepare_features(df):
     """

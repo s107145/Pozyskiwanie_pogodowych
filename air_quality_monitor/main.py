@@ -120,8 +120,19 @@ def main():
             print(group[columns_to_show].head(5))
 
         # 2. Monitorowanie danych aktualnych
-        print("\n=== Dane aktualne ===")
-        freq = input("Podaj częstotliwość pobierania (sekundy) [60]: ").strip()
+
+            print("\n=== Dane aktualne ===")
+            # freq = input("Podaj częstotliwość pobierania (sekundy) [domyślnie 60 sekund]: ").strip()
+            # if not freq:
+            #     freq = "60"
+            # try:
+            #     freq_int = int(freq)
+            # except ValueError:
+            #     freq_int = 60
+            #
+            # run_current_monitoring(freq_int)
+
+        freq = input("Podaj częstotliwość pobierania (sekundy) [domyślnie 60 sekund]: ").strip()
         if not freq:
             freq = "60"
         try:
@@ -129,9 +140,16 @@ def main():
         except ValueError:
             freq_int = 60
 
-        run_current_monitoring(freq_int)
+        duration = input("Podaj czas trwania monitoringu (minuty, puste = nieskończoność): ").strip()
+        if duration:
+            try:
+                duration_sec = int(duration) * 60  # zamiana minut na sekundy
+            except ValueError:
+                duration_sec = None
+        else:
+            duration_sec = None
 
-
+        run_current_monitoring(freq_int, duration_sec)
 
 
 if __name__ == "__main__":
