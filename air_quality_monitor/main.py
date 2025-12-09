@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta, timezone
-
+from air_quality_monitor.config import HISTORICAL_FILE
 from historical_data import get_historical_data, load_historical_data
 from current_data import run_current_monitoring
+from merge import run_merge
+from utils.data_handler  import save_json, save_to_db
 
 
 # Domyślny zakres ostatnich 7 dni (gdy użytkownik nic nie wpisze)
@@ -95,6 +97,8 @@ def main():
         if not use_saved:
             date_from, date_to = ask_date_range()
             saved = get_historical_data(date_from, date_to)
+            if saved:
+                save_json(saved, HISTORICAL_FILE)
 
         # POKAŻ PODSUMOWANIE DANYCH HISTORYCZNYCH
         if saved:
@@ -119,7 +123,8 @@ def main():
             print(f"\n--- {param_name.upper()} ---")
             print(group[columns_to_show].head(5))
 
-        # 2. Monitorowanie danych aktualnych
+
+# 2. Monitorowanie danych aktualnych
 
             print("\n=== Dane aktualne ===")
             # freq = input("Podaj częstotliwość pobierania (sekundy) [domyślnie 60 sekund]: ").strip()
@@ -150,6 +155,13 @@ def main():
             duration_sec = None
 
         run_current_monitoring(freq_int, duration_sec)
+
+
+
+
+            # merged = run_merge(saved)
+            # save_json(merged, "data/merged.json")
+            # save_to_db(merged)
 
 
 if __name__ == "__main__":

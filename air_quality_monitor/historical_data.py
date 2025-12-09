@@ -1,5 +1,5 @@
 import requests
-
+from logger import logger
 from sensors import download_historical_all_sensors
 from utils.data_handler import load_json
 from config import HISTORICAL_FILE
@@ -18,10 +18,11 @@ def load_historical_data():
     return data
 
 
-# from logger import logger
-#
-# try:
-#     r = requests.get(url)
-#     logger.info("Połączono z API OpenAQ.")
-# except Exception as e:
-#     logger.error(f"Błąd API: {e}")
+def check_api(url: str):
+    try:
+        r = requests.get(url)
+        logger.info("Połączono z API OpenAQ.")
+        return r
+    except Exception as e:
+        logger.error(f"Błąd API: {e}")
+        return None
