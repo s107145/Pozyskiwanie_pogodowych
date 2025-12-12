@@ -53,3 +53,12 @@
 2025-12-08 20:30:10,653 | INFO | Zapisano aktualne dane do C:\Users\natal\Desktop\Pozyskiwanie_pogodowych\air_quality_monitor\data\current_data.json
 2025-12-08 20:30:10,654 | INFO | Liczba odebranych pomiarów: 500
 2025-12-08 20:30:10,673 | INFO | Czas monitoringu dobiegł końca.
+2025-12-12 09:36:29,456 | INFO | Start monitoringu aktualnych danych co 60 sekund.
+2025-12-12 09:36:29,457 | INFO | Czas działania monitoringu: 60 sekund.
+2025-12-12 09:36:35,482 | INFO | Pobrano dane aktualne ze wszystkich sensorów.
+2025-12-12 09:36:35,514 | INFO | Zapisano aktualne dane do C:\Users\Natalia\PycharmProjects\Pozyskiwanie_pogodowych_NO\air_quality_monitor\data\current_data.json
+2025-12-12 09:36:35,515 | INFO | Liczba odebranych pomiarów: 500
+2025-12-12 09:39:56,824 | INFO | Pobrano dane aktualne ze wszystkich sensorów.
+2025-12-12 09:39:57,645 | INFO | Zapisano aktualne dane do C:\Users\Natalia\PycharmProjects\Pozyskiwanie_pogodowych_NO\air_quality_monitor\data\current_data.json
+2025-12-12 09:39:57,662 | INFO | Liczba odebranych pomiarów: 500
+2025-12-12 09:39:57,886 | INFO | Czas monitoringu dobiegł końca.

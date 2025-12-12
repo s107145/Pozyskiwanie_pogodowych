@@ -1,20 +1,32 @@
 from datetime import datetime, timedelta, timezone
-from air_quality_monitor.config import HISTORICAL_FILE
+
 from historical_data import get_historical_data, load_historical_data
 from current_data import run_current_monitoring
-from merge import run_merge
-from utils.data_handler  import save_json, save_to_db
 
 
 # Domyślny zakres ostatnich 7 dni (gdy użytkownik nic nie wpisze)
 default_to = datetime.now(timezone.utc).date()
 default_from = (datetime.now(timezone.utc) - timedelta(days=7)).date()
 
+def ask_yes_no(prompt: str) -> bool:
+    """
+    Pyta użytkownika o odpowiedź tak/nie aż do skutku.
+    Zwraca True dla tak, False dla nie.
+    """
+    while True:
+        ans = input(prompt).strip().lower()
+        if ans in ("t", "tak", "y", "yes"):
+            return True
+        elif ans in ("n", "nie", "no"):
+            return False
+        else:
+            print("Nieprawidłowa odpowiedź. Wpisz: tak/nie.")
+
 
 def ask_date_range():
     print("\n=== Dane historyczne ===")
-    date_from = input(f"Data początkowa (YYYY-MM-DD) [{default_from}]: ").strip()
-    date_to = input(f"Data końcowa   (YYYY-MM-DD) [{default_to}]: ").strip()
+    date_from = input(f"Data początkowa (YYYY-MM-DD): ").strip()
+    date_to = input(f"Data końcowa   (YYYY-MM-DD): ").strip()
 
     if not date_from:
         date_from = str(default_from)
@@ -79,7 +91,6 @@ def show_historical_summary(data: dict):
 
 
 def main():
-
     print("======================================")
     print("  Air Quality Monitor – OpenAQ")
     print("======================================")
@@ -89,80 +100,61 @@ def main():
     use_saved = False
 
     if saved:
-        print(f"\nZnaleziono zapisane dane historyczne.")
-        answer = input("Użyć zapisanych danych historycznych? (tak/nie): ").strip().lower()
-        if answer in ["", "tak", "t", "yes", "y"]:
-            use_saved = True
+        print("\nZnaleziono zapisane dane historyczne.")
+        use_saved = ask_yes_no("Użyć zapisanych danych historycznych? (tak/nie): ")
 
         if not use_saved:
+            # użytkownik nie chce starych danych → pobierz nowe
             date_from, date_to = ask_date_range()
             saved = get_historical_data(date_from, date_to)
-            if saved:
-                save_json(saved, HISTORICAL_FILE)
+    else:
+        # w ogóle nie ma pliku z danymi historycznymi
+        print("\nBrak zapisanych danych historycznych – pobieram nowe.")
+        date_from, date_to = ask_date_range()
+        saved = get_historical_data(date_from, date_to)
 
-        # POKAŻ PODSUMOWANIE DANYCH HISTORYCZNYCH
-        if saved:
-            show_historical_summary(saved)
-        else:
-            print("\nBrak danych historycznych do wyświetlenia.\n")
-            return  # zakończ, jeśli brak danych
+    # jeżeli tu dotarliśmy, 'saved' powinno zawierać dane (stare lub nowe)
+    if not saved:
+        print("✗ Nie udało się pobrać danych historycznych. Kończę program.")
+        return  # w funkcji main(); poza funkcją użyj sys.exit(1)
 
-            # === FEATURE ENGINEERING ===
-        import pandas as pd
-        from utils.features import prepare_features
+    # 1a. Podsumowanie danych historycznych
+    show_historical_summary(saved)
 
-        df = pd.json_normalize(saved["results"])
-        df = prepare_features(df)
+    # === FEATURE ENGINEERING (opcjonalnie) ===
+    import pandas as pd
+    from utils.features import prepare_features
 
-        columns_to_show = ["parameter.name", "value", "parameter.units", "value_norm", "value_std"]
+    df = pd.json_normalize(saved["results"])
+    df = prepare_features(df)
 
-        print("\n=== Przykładowe nowe cechy (wybrane kolumny) ===")
+    columns_to_show = ["parameter.name", "value", "parameter.units", "value_norm", "value_std"]
 
-        # osobno dla każdego parametru (czytelniej)
-        for param_name, group in df.groupby("parameter.name"):
-            print(f"\n--- {param_name.upper()} ---")
-            print(group[columns_to_show].head(5))
+    print("\n=== Przykładowe nowe cechy (wybrane kolumny) ===")
+    for param_name, group in df.groupby("parameter.name"):
+        print(f"\n--- {param_name.upper()} ---")
+        print(group[columns_to_show].head(5))
 
+    # 2. Monitorowanie danych aktualnych
+    print("\n=== Dane aktualne ===")
+    freq = input("Podaj częstotliwość pobierania (sekundy) [domyślnie 60 sekund]: ").strip()
+    if not freq:
+        freq = "60"
+    try:
+        freq_int = int(freq)
+    except ValueError:
+        freq_int = 60
 
-# 2. Monitorowanie danych aktualnych
-
-            print("\n=== Dane aktualne ===")
-            # freq = input("Podaj częstotliwość pobierania (sekundy) [domyślnie 60 sekund]: ").strip()
-            # if not freq:
-            #     freq = "60"
-            # try:
-            #     freq_int = int(freq)
-            # except ValueError:
-            #     freq_int = 60
-            #
-            # run_current_monitoring(freq_int)
-
-        freq = input("Podaj częstotliwość pobierania (sekundy) [domyślnie 60 sekund]: ").strip()
-        if not freq:
-            freq = "60"
+    duration = input("Podaj czas trwania monitoringu (minuty, puste = nieskończoność): ").strip()
+    if duration:
         try:
-            freq_int = int(freq)
+            duration_sec = int(duration) * 60  # zamiana minut na sekundy
         except ValueError:
-            freq_int = 60
-
-        duration = input("Podaj czas trwania monitoringu (minuty, puste = nieskończoność): ").strip()
-        if duration:
-            try:
-                duration_sec = int(duration) * 60  # zamiana minut na sekundy
-            except ValueError:
-                duration_sec = None
-        else:
             duration_sec = None
+    else:
+        duration_sec = None
 
-        run_current_monitoring(freq_int, duration_sec)
-
-
-
-
-            # merged = run_merge(saved)
-            # save_json(merged, "data/merged.json")
-            # save_to_db(merged)
-
+    run_current_monitoring(freq_int, duration_sec)
 
 if __name__ == "__main__":
     main()
