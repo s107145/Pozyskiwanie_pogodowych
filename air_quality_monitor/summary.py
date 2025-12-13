@@ -2,11 +2,11 @@ def show_historical_summary(data: dict):
     """Podsumowanie danych historycznych + przykładowe wartości parametrów."""
     results = data.get("results", [])
 
-    print("\n=== Podsumowanie danych historycznych ===")
+    print("\n Podsumowanie danych historycznych ")
     print(f"Liczba pomiarów: {len(results)}")
     if not results:
         print("Brak pomiarów w danych historycznych.")
-        print("=========================================\n")
+
         return
 
     # Liczba rekordów na parametr
@@ -49,5 +49,4 @@ def show_historical_summary(data: dict):
             # TEN print musi być WEWNĄTRZ pętli for m in sample:
             print(f"{value} {unit}")
 
-    print("=========================================\n")
 

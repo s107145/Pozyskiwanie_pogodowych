@@ -9,9 +9,9 @@ from utils.features import prepare_features
 
 
 def main():
-    print("======================================")
+
     print("  Air Quality Monitor – OpenAQ")
-    print("======================================")
+
 
     # 1. Dane historyczne: wczytaj lub pobierz nowe
     saved = load_historical_data()
@@ -34,12 +34,12 @@ def main():
     #  Zapis danych historycznych do SQLite
 
     save_historical_to_db(saved)  # <- tutaj zapis do bazy
-    print("✔ Dane historyczne zapisane do bazy SQLite")
+    print(" Dane historyczne zapisane do bazy SQLite")
 
 
     # jeżeli tu dotarliśmy, 'saved' powinno zawierać dane (stare lub nowe)
     if not saved:
-        print("✗ Nie udało się pobrać danych historycznych. Kończę program.")
+        print(" Nie udało się pobrać danych historycznych. Kończę program.")
         return  # w funkcji main(); poza funkcją użyj sys.exit(1)
 
     # 1a. Podsumowanie danych historycznych
@@ -52,13 +52,13 @@ def main():
 
     columns_to_show = ["parameter.name", "value", "parameter.units", "value_norm", "value_std"]
 
-    print("\n=== Przykładowe nowe cechy (wybrane kolumny) ===")
+    print("\n Przykładowe nowe cechy (wybrane kolumny) ")
     for param_name, group in df.groupby("parameter.name"):
         print(f"\n--- {param_name.upper()} ---")
         print(group[columns_to_show].head(5))
 
     # 2. Monitorowanie danych aktualnych
-    print("\n=== Dane aktualne ===")
+    print("\n Dane aktualne ")
     freq = input("Podaj częstotliwość pobierania (sekundy) [domyślnie 60 sekund]: ").strip()
     if not freq:
         freq = "60"
@@ -79,7 +79,7 @@ def main():
     current_data = run_current_monitoring(freq_int, duration_sec)
     if current_data:
         save_current_to_db(current_data)  # <- zapis do SQLite
-        print("✔ Dane aktualne zapisane do bazy SQLite")
+        print(" Dane aktualne zapisane do bazy SQLite")
 
     #Zapis danych do bazy danych
 if __name__ == "__main__":

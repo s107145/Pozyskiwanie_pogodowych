@@ -21,7 +21,7 @@ default_from = (datetime.now(timezone.utc) - timedelta(days=7)).date()
 
 
 def ask_date_range():
-    print("\n=== Dane historyczne ===")
+    print("\n Dane historyczne ")
     date_from = input(f"Data początkowa (YYYY-MM-DD): ").strip()
     date_to = input(f"Data końcowa   (YYYY-MM-DD): ").strip()
 

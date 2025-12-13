@@ -2,12 +2,15 @@ import os
 import json
 import shutil
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
+import logging
+
+from air_quality_monitor.config import DB_PATH
+
+logger = logging.getLogger("air_quality")
 
 
-# =========================
 # JSON – zapis / odczyt
-# =========================
 
 def save_json(data: dict, path: str):
     """Zapisuje dane do JSON z backupem i obsługą błędów."""
@@ -35,6 +38,8 @@ def save_json(data: dict, path: str):
                 print(f"Nie udało się odzyskać backupu: {e2}")
 
 
+
+
 def load_json(path: str):
     """Wczytuje JSON, w razie błędu próbuje backup."""
     if not os.path.exists(path):
@@ -43,15 +48,19 @@ def load_json(path: str):
     try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
+
     except json.JSONDecodeError:
         backup_path = path + ".backup"
+
         if os.path.exists(backup_path):
             try:
                 with open(backup_path, "r", encoding="utf-8") as f:
-                    print("Odzyskano dane z backupu.")
+                    logger.warning("Odzyskano dane z backupu: %s", backup_path)
                     return json.load(f)
-            except Exception:
-                pass
+
+            except (OSError, json.JSONDecodeError) as e:
+                logger.error("Nie udało się wczytać backupu %s: %s", backup_path, e)
+
         return None
 
 
@@ -71,11 +80,9 @@ def save_json_merge(new_payload: dict, path: str, key: str = "results"):
     save_json(payload, path)
 
 
-# =========================
-# SQLite – konfiguracja
-# =========================
 
-DB_PATH = "data/air_quality.db"
+# SQLite
+
 
 
 def init_db():
@@ -100,9 +107,9 @@ def init_db():
     conn.close()
 
 
-# =========================
+
 # Zapis danych historycznych
-# =========================
+
 
 def save_historical_to_db(payload: dict):
     """Zapisuje dane historyczne do SQLite bez raw_json."""
@@ -132,9 +139,9 @@ def save_historical_to_db(payload: dict):
 
         # Jeśli nadal brak timestamp, użyj czasu pobrania
         if not timestamp:
-            timestamp = datetime.utcnow().isoformat()
+            timestamp = datetime.now(timezone.utc).isoformat()
 
-        # INSERT – tylko 6 kolumn (bez raw_json)
+        # INSERT – tylko 6 kolumn
         cur.execute("""
             INSERT INTO measurements
             (source, location_id, parameter, value, unit, timestamp)
@@ -151,9 +158,9 @@ def save_historical_to_db(payload: dict):
     conn.commit()
     conn.close()
 
-# =========================
-# Zapis danych aktualnych (POPRAWNE)
-# =========================
+
+# Zapis danych aktualnych
+
 
 def save_current_to_db(payload: dict):
     """Zapisuje dane aktualne do SQLite bez raw_json (tylko 6 kolumn)."""
@@ -190,7 +197,7 @@ def save_current_to_db(payload: dict):
                 )
 
         if not timestamp:
-            timestamp = download_time or datetime.utcnow().isoformat()
+            timestamp = download_time or   datetime.now(timezone.utc).isoformat()
 
         # INSERT – tylko 6 wartości
         cur.execute("""

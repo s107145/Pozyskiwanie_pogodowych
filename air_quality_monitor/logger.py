@@ -3,40 +3,50 @@ from logging.handlers import RotatingFileHandler
 import os
 
 
+def setup_logger(
+    name: str = "air_quality",
+    log_dir: str = "logs",
+    log_file: str = "system.log",
+    level: int = logging.INFO
+) -> logging.Logger:
+    """
+    Konfiguruje i zwraca logger aplikacji.
+    """
 
+    # Utworzenie katalogu na logi
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, log_file)
 
-# Folder na logi
-LOG_DIR = "logs"
-os.makedirs(LOG_DIR, exist_ok=True)
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
 
-LOG_FILE = os.path.join(LOG_DIR, "system.log")
+    # 🔑 zabezpieczenie przed wielokrotnym dodaniem handlerów
+    if logger.handlers:
+        return logger
 
-# Główny logger aplikacji
-logger = logging.getLogger("air_quality")
-logger.setLevel(logging.INFO)
-
-# 🔑 KLUCZOWE: zabezpieczenie przed dodawaniem handlerów wiele razy
-if not logger.handlers:
+    formatter = logging.Formatter(
+        "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+    )
 
     # Handler plikowy z rotacją
     file_handler = RotatingFileHandler(
-        LOG_FILE,
+        log_path,
         maxBytes=5 * 1024 * 1024,  # 5 MB
         backupCount=3,
         encoding="utf-8"
     )
-
-    formatter = logging.Formatter(
-        "%(asctime)s | %(levelname)s | %(message)s"
-    )
-
     file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
 
     # Handler konsolowy
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
+
+    logger.addHandler(file_handler)
     logger.addHandler(console_handler)
 
-# Opcjonalnie: wyłącz propagację do root loggera
-logger.propagate = False
+    # Brak propagacji do root loggera
+    logger.propagate = False
+
+    return logger
+
+

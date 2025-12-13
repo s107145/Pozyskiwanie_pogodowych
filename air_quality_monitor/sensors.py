@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import List, Dict
-
 from config import OPENAQ_API_KEY, LOCATION_ID, HISTORICAL_FILE, CURRENT_FILE
 from utils.data_handler import  save_json_merge
 from utils.api import safe_request
@@ -87,12 +86,12 @@ def download_historical_all_sensors(date_from: str, date_to: str) -> Dict:
     """
     Pobiera dane historyczne ze WSZYSTKICH sensorów i WYŚWIETLA WYNIKI NATYCHMIAST.
     """
-    print(f"\n📅 Pobieram dane historyczne {date_from} → {date_to} dla wszystkich sensorów...")
+    print(f"\n Pobieram dane historyczne {date_from} - {date_to} dla wszystkich sensorów...")
 
     sensors = get_sensors_for_location(LOCATION_ID)
     all_measurements = []
 
-    print(f"\n🔄 Pobieranie danych z {len(sensors)} sensorów:")
+    print(f"\n Pobieranie danych z {len(sensors)} sensorów:")
     print("-" * 60)
 
     for s in sensors:
@@ -103,7 +102,7 @@ def download_historical_all_sensors(date_from: str, date_to: str) -> Dict:
         if sensor_id is None:
             continue
 
-        print(f"\n📈 Sensor #{sensor_id} ({parameter_name}):")
+        print(f"\n Sensor #{sensor_id} ({parameter_name}):")
         measurements = get_measurements_for_sensor(sensor_id, date_from, date_to)
 
         # NATYCHMIAST WYŚWIETL PODSUMOWANIE
@@ -122,7 +121,7 @@ def download_historical_all_sensors(date_from: str, date_to: str) -> Dict:
     }
 
     save_json_merge(payload, HISTORICAL_FILE)
-    print(f"\n✅ ZAPISANO {len(all_measurements)} pomiarów do: {HISTORICAL_FILE}")
+    print(f"\n ZAPISANO {len(all_measurements)} pomiarów do: {HISTORICAL_FILE}")
     print("=" * 60)
     return payload
 
@@ -184,7 +183,7 @@ def print_sensor_summary(measurements, sensor_id, parameter_name):
         print(f"     Brak pomiarów dla sensora #{sensor_id}")
         return
 
-    print(f"     📊 {parameter_name.upper()}: {len(measurements)} pomiarów")
+    print(f"      {parameter_name.upper()}: {len(measurements)} pomiarów")
 
     # Statystyki
     values = [m.get("value") for m in measurements if m.get("value") is not None]

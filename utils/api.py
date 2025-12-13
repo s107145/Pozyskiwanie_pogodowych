@@ -1,23 +1,25 @@
 import time
 import requests
-from air_quality_monitor.logger import logger
+import logging
 
+logger = logging.getLogger("air_quality")
 
 def safe_request(
     url: str,
-    headers: dict = None,
-    params: dict = None,
+    headers: dict | None = None,
+    params: dict | None = None,
     max_retries: int = 5,
     backoff_factor: int = 2,
     timeout: int = 30
-):
+) -> requests.Response | None:
     """
     Bezpieczne wywołanie API:
-    - obsługuje limity (429)
-    - retry z backoff
+    - retry + exponential backoff
+    - obsługa limitów (429)
     - timeout
-    - logowanie błędów
+    - czytelne logowanie
     """
+
     for attempt in range(1, max_retries + 1):
         try:
             response = requests.get(
@@ -31,31 +33,42 @@ def safe_request(
             if response.status_code == 429:
                 wait_time = backoff_factor ** attempt
                 logger.warning(
-                    f"Limit API (429). Próba {attempt}/{max_retries}. "
-                    f"Czekam {wait_time}s."
+                    "Limit API (429). Próba %s/%s. Czekam %ss.",
+                    attempt, max_retries, wait_time
                 )
                 time.sleep(wait_time)
                 continue
 
-            # Błędy serwera
-            if response.status_code >= 500:
+            # Błędy serwera (retry)
+            if 500 <= response.status_code < 600:
+                wait_time = backoff_factor ** attempt
                 logger.warning(
-                    f"Błąd serwera {response.status_code}. "
-                    f"Próba {attempt}/{max_retries}."
+                    "Błąd serwera %s. Próba %s/%s. Czekam %ss.",
+                    response.status_code, attempt, max_retries, wait_time
                 )
-                time.sleep(backoff_factor)
+                time.sleep(wait_time)
                 continue
+
+            # Inne błędy klienta – NIE retry
+            if 400 <= response.status_code < 500:
+                logger.error(
+                    "Błąd klienta %s: %s",
+                    response.status_code, response.text
+                )
+                return None
 
             return response
 
         except requests.exceptions.Timeout:
+            wait_time = backoff_factor ** attempt
             logger.warning(
-                f"Timeout API. Próba {attempt}/{max_retries}."
+                "Timeout API. Próba %s/%s. Czekam %ss.",
+                attempt, max_retries, wait_time
             )
-            time.sleep(backoff_factor)
+            time.sleep(wait_time)
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Błąd połączenia API: {e}")
+            logger.error("Błąd połączenia API: %s", e)
             return None
 
     logger.error("Przekroczono maksymalną liczbę prób API.")
