@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from historical_data import get_historical_data, load_historical_data
 from current_data import run_current_monitoring
-
+from utils.data_handler import save_current_to_db
 
 # Domyślny zakres ostatnich 7 dni (gdy użytkownik nic nie wpisze)
 default_to = datetime.now(timezone.utc).date()
@@ -113,6 +113,12 @@ def main():
         date_from, date_to = ask_date_range()
         saved = get_historical_data(date_from, date_to)
 
+    # 🟢 Zapis danych historycznych do SQLite
+    from utils.data_handler import save_historical_to_db
+    save_historical_to_db(saved)  # <- tutaj zapis do bazy
+    print("✔ Dane historyczne zapisane do bazy SQLite")
+
+
     # jeżeli tu dotarliśmy, 'saved' powinno zawierać dane (stare lub nowe)
     if not saved:
         print("✗ Nie udało się pobrać danych historycznych. Kończę program.")
@@ -154,7 +160,11 @@ def main():
     else:
         duration_sec = None
 
-    run_current_monitoring(freq_int, duration_sec)
+    current_data = run_current_monitoring(freq_int, duration_sec)
+    if current_data:
+        save_current_to_db(current_data)  # <- zapis do SQLite
+        print("✔ Dane aktualne zapisane do bazy SQLite")
 
+    #Zapis danych do bazy danych
 if __name__ == "__main__":
     main()

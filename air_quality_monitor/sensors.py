@@ -1,10 +1,9 @@
-import requests
 from datetime import datetime
 from typing import List, Dict
 
 from config import OPENAQ_API_KEY, LOCATION_ID, HISTORICAL_FILE, CURRENT_FILE
-from utils.data_handler import save_json, load_json
-
+from utils.data_handler import  save_json_merge
+from utils.api import safe_request
 
 def get_sensors_for_location(location_id: int) -> List[Dict]:
     """
@@ -23,7 +22,9 @@ def get_sensors_for_location(location_id: int) -> List[Dict]:
     }
 
     try:
-        response = requests.get(url, params=params, headers=headers, timeout=10)
+        response = safe_request(url, headers=headers, params=params)
+        if response is None:
+            return []
         if response.status_code == 200:
             data = response.json()
             sensors = data.get("results", [])
@@ -65,7 +66,10 @@ def get_measurements_for_sensor(
     }
 
     try:
-        response = requests.get(url, params=params, headers=headers, timeout=30)
+        response = safe_request(url, headers=headers, params=params)
+        if response is None:
+            return []
+
         if response.status_code == 200:
             data = response.json()
             measurements = data.get("results", [])
@@ -117,7 +121,7 @@ def download_historical_all_sensors(date_from: str, date_to: str) -> Dict:
         "results": all_measurements,
     }
 
-    save_json(payload, HISTORICAL_FILE)
+    save_json_merge(payload, HISTORICAL_FILE)
     print(f"\n✅ ZAPISANO {len(all_measurements)} pomiarów do: {HISTORICAL_FILE}")
     print("=" * 60)
     return payload
@@ -149,7 +153,9 @@ def download_current_all_sensors() -> Dict:
         }
 
         try:
-            response = requests.get(url, params=params, headers=headers, timeout=20)
+            response = safe_request(url, headers=headers, params=params)
+            if response is None:
+                return []
             print(f"Status current (sensor {sensor_id}): {response.status_code}")
 
             if response.status_code == 200:
@@ -167,7 +173,7 @@ def download_current_all_sensors() -> Dict:
         "results": all_measurements,
     }
 
-    save_json(payload, CURRENT_FILE)
+    save_json_merge(payload, HISTORICAL_FILE)
     print(f"\nZapisano aktualne dane wszystkich sensorów do: {CURRENT_FILE}")
     return payload
 

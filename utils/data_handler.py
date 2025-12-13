@@ -1,15 +1,19 @@
-import shutil
-from datetime import datetime
-import sqlite3
-import json
 import os
+import json
+import shutil
+import sqlite3
+from datetime import datetime
+
+
+# =========================
+# JSON – zapis / odczyt
+# =========================
 
 def save_json(data: dict, path: str):
     """Zapisuje dane do JSON z backupem i obsługą błędów."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     backup_path = path + ".backup"
 
-    # Tworzymy backup starego pliku
     if os.path.exists(path):
         try:
             shutil.copyfile(path, backup_path)
@@ -17,49 +21,62 @@ def save_json(data: dict, path: str):
         except Exception as e:
             print(f"Nie udało się utworzyć backupu: {e}")
 
-    # Zapis danych
     try:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
         print(f"Dane zapisane w {path} ({datetime.now()})")
     except Exception as e:
         print(f"Błąd zapisu danych: {e}")
-        # Próba odzyskania backupu
         if os.path.exists(backup_path):
             try:
                 shutil.copyfile(backup_path, path)
-                print(f"Odzyskano plik z backupu po błędzie zapisu.")
+                print("Odzyskano plik z backupu.")
             except Exception as e2:
                 print(f"Nie udało się odzyskać backupu: {e2}")
 
+
 def load_json(path: str):
-    """Wczytuje dane z JSON. Jeśli plik jest uszkodzony, próbuje backup."""
+    """Wczytuje JSON, w razie błędu próbuje backup."""
     if not os.path.exists(path):
-        print(f"Plik {path} nie istnieje.")
         return None
 
     try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError:
-        print(f"Plik {path} jest uszkodzony!")
         backup_path = path + ".backup"
         if os.path.exists(backup_path):
             try:
                 with open(backup_path, "r", encoding="utf-8") as f:
-                    print(f"Odzyskano dane z backupu: {backup_path}")
+                    print("Odzyskano dane z backupu.")
                     return json.load(f)
-            except Exception as e:
-                print(f"Backup również nie działa: {e}")
-        return None
-    except Exception as e:
-        print(f"Błąd wczytywania pliku: {e}")
+            except Exception:
+                pass
         return None
 
-#SQL lite
 
+def save_json_merge(new_payload: dict, path: str, key: str = "results"):
+    """Dokleja nowe rekordy do istniejącego pliku JSON."""
+    existing = load_json(path)
+
+    if existing and key in existing and key in new_payload:
+        merged = existing[key] + new_payload[key]
+    else:
+        merged = new_payload.get(key, [])
+
+    payload = new_payload.copy()
+    payload[key] = merged
+    payload["total_measurements"] = len(merged)
+
+    save_json(payload, path)
+
+
+# =========================
+# SQLite – konfiguracja
+# =========================
 
 DB_PATH = "data/air_quality.db"
+
 
 def init_db():
     os.makedirs("data", exist_ok=True)
@@ -67,13 +84,15 @@ def init_db():
     cur = conn.cursor()
 
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS air_quality (
+        CREATE TABLE IF NOT EXISTS measurements (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source TEXT,
+            location_id INTEGER,
+            parameter TEXT,
+            value REAL,
+            unit TEXT,
             timestamp TEXT,
-            location TEXT,
-            openaq TEXT,
-            scraped TEXT,
-            gios TEXT
+            raw_json TEXT
         )
     """)
 
@@ -81,21 +100,110 @@ def init_db():
     conn.close()
 
 
-def save_to_db(data: dict):
+# =========================
+# Zapis danych historycznych
+# =========================
+
+def save_historical_to_db(payload: dict):
+    """Zapisuje dane historyczne do SQLite."""
     init_db()
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute("""
-        INSERT INTO air_quality (timestamp, location, openaq, scraped, gios)
-        VALUES (?, ?, ?, ?, ?)
-    """, (
-        data["timestamp"],
-        data["location"],
-        json.dumps(data["sources"]["openaq"]),
-        json.dumps(data["sources"]["scraped"]),
-        json.dumps(data["sources"]["gios"])
-    ))
+    location_id = payload.get("location_id")
+
+    for m in payload.get("results", []):
+
+        param = m.get("parameter")
+        if isinstance(param, dict):
+            param_name = param.get("name")
+            unit = param.get("units")
+        else:
+            param_name = param
+            unit = m.get("unit")
+
+        dt = m.get("datetime") or m.get("date")
+        if isinstance(dt, dict):
+            timestamp = dt.get("utc") or dt.get("local")
+        else:
+            timestamp = dt
+
+        cur.execute("""
+            INSERT INTO measurements
+            (source, location_id, parameter, value, unit, timestamp, raw_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            "historical",
+            location_id,
+            param_name,
+            m.get("value"),
+            unit,
+            timestamp,
+            json.dumps(m)
+        ))
+
+    conn.commit()
+    conn.close()
+
+
+# =========================
+# Zapis danych aktualnych (POPRAWNE)
+# =========================
+
+def save_current_to_db(payload: dict):
+    """
+    Zapisuje dane aktualne do SQLite – poprawna obsługa OpenAQ v3.
+    Gwarantuje brak NULL w timestamp.
+    """
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    location_id = payload.get("location_id")
+    download_time = payload.get("download_time")
+
+    for m in payload.get("results", []):
+
+        # parametr
+        param = m.get("parameter")
+        if isinstance(param, dict):
+            param_name = param.get("name")
+            unit = param.get("units")
+        else:
+            param_name = param
+            unit = m.get("unit")
+
+        # timestamp
+        timestamp = None
+
+        if isinstance(m.get("datetime"), dict):
+            timestamp = m["datetime"].get("utc") or m["datetime"].get("local")
+
+        if not timestamp:
+            period = m.get("period")
+            if isinstance(period, list) and period:
+                p = period[0]
+                timestamp = (
+                    p.get("datetimeTo", {}).get("utc")
+                    or p.get("datetimeFrom", {}).get("utc")
+                )
+
+        if not timestamp:
+            timestamp = download_time or datetime.utcnow().isoformat()
+
+        cur.execute("""
+            INSERT INTO measurements
+            (source, location_id, parameter, value, unit, timestamp, raw_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            "current",
+            location_id,
+            param_name,
+            m.get("value"),
+            unit,
+            timestamp,
+            json.dumps(m)
+        ))
 
     conn.commit()
     conn.close()
