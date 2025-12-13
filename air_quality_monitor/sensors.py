@@ -155,7 +155,7 @@ def download_current_all_sensors() -> Dict:
         try:
             response = safe_request(url, headers=headers, params=params)
             if response is None:
-                return []
+                return {}
             print(f"Status current (sensor {sensor_id}): {response.status_code}")
 
             if response.status_code == 200:
@@ -210,6 +210,6 @@ def print_sensor_summary(measurements, sensor_id, parameter_name):
         if not dt_obj:
             dt_obj = "BRAK_DATY"
 
-        dt = dt_obj
+
         value = m.get("value")
         print(f"         {i}.  {value:.2f}")

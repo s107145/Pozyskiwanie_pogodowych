@@ -1,5 +1,4 @@
 import pandas as pd
-
 def handle_missing_data(measurements: list):
     """
     Obsługa brakujących danych w aktualnej porcji pomiarów.

@@ -1,5 +1,5 @@
 import time
-from logger import logger
+from air_quality_monitor.logger import logger
 from config import CURRENT_FILE
 from sensors import download_current_all_sensors
 from utils.anomalies import detect_anomalies

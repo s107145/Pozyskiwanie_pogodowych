@@ -91,8 +91,8 @@ def init_db():
             parameter TEXT,
             value REAL,
             unit TEXT,
-            timestamp TEXT,
-            raw_json TEXT
+            timestamp TEXT
+            
         )
     """)
 
@@ -105,7 +105,7 @@ def init_db():
 # =========================
 
 def save_historical_to_db(payload: dict):
-    """Zapisuje dane historyczne do SQLite."""
+    """Zapisuje dane historyczne do SQLite bez raw_json."""
     init_db()
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -114,6 +114,7 @@ def save_historical_to_db(payload: dict):
 
     for m in payload.get("results", []):
 
+        # parametr
         param = m.get("parameter")
         if isinstance(param, dict):
             param_name = param.get("name")
@@ -122,39 +123,40 @@ def save_historical_to_db(payload: dict):
             param_name = param
             unit = m.get("unit")
 
+        # timestamp
         dt = m.get("datetime") or m.get("date")
         if isinstance(dt, dict):
             timestamp = dt.get("utc") or dt.get("local")
         else:
             timestamp = dt
 
+        # Jeśli nadal brak timestamp, użyj czasu pobrania
+        if not timestamp:
+            timestamp = datetime.utcnow().isoformat()
+
+        # INSERT – tylko 6 kolumn (bez raw_json)
         cur.execute("""
             INSERT INTO measurements
-            (source, location_id, parameter, value, unit, timestamp, raw_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (source, location_id, parameter, value, unit, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?)
         """, (
             "historical",
             location_id,
             param_name,
             m.get("value"),
             unit,
-            timestamp,
-            json.dumps(m)
+            timestamp
         ))
 
     conn.commit()
     conn.close()
-
 
 # =========================
 # Zapis danych aktualnych (POPRAWNE)
 # =========================
 
 def save_current_to_db(payload: dict):
-    """
-    Zapisuje dane aktualne do SQLite – poprawna obsługa OpenAQ v3.
-    Gwarantuje brak NULL w timestamp.
-    """
+    """Zapisuje dane aktualne do SQLite bez raw_json (tylko 6 kolumn)."""
     init_db()
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -175,7 +177,6 @@ def save_current_to_db(payload: dict):
 
         # timestamp
         timestamp = None
-
         if isinstance(m.get("datetime"), dict):
             timestamp = m["datetime"].get("utc") or m["datetime"].get("local")
 
@@ -191,18 +192,18 @@ def save_current_to_db(payload: dict):
         if not timestamp:
             timestamp = download_time or datetime.utcnow().isoformat()
 
+        # INSERT – tylko 6 wartości
         cur.execute("""
             INSERT INTO measurements
-            (source, location_id, parameter, value, unit, timestamp, raw_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (source, location_id, parameter, value, unit, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?)
         """, (
             "current",
             location_id,
             param_name,
             m.get("value"),
             unit,
-            timestamp,
-            json.dumps(m)
+            timestamp
         ))
 
     conn.commit()
