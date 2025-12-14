@@ -12,17 +12,14 @@ def main():
 
     print("  Air Quality Monitor – OpenAQ")
 
-
     # 1. Dane historyczne: wczytaj lub pobierz nowe
     saved = load_historical_data()
-
-
     if saved:
         print("\nZnaleziono zapisane dane historyczne.")
         use_saved = ask_yes_no()
 
         if not use_saved:
-            # użytkownik nie chce starych danych → pobierz nowe
+            # użytkownik nie chce starych danych, pobiera nowe
             date_from, date_to = ask_date_range()
             saved = get_historical_data(date_from, date_to)
     else:
@@ -36,20 +33,17 @@ def main():
     save_historical_to_db(saved)  # <- tutaj zapis do bazy
     print(" Dane historyczne zapisane do bazy SQLite")
 
-
-    # jeżeli tu dotarliśmy, 'saved' powinno zawierać dane (stare lub nowe)
+    #Jeśli nie udalo się pobrać danych
     if not saved:
         print(" Nie udało się pobrać danych historycznych. Kończę program.")
-        return  # w funkcji main(); poza funkcją użyj sys.exit(1)
+        return
 
     # 1a. Podsumowanie danych historycznych
     show_historical_summary(saved)
 
-    # === FEATURE ENGINEERING (opcjonalnie) ===
-
+    #FEATURE ENGINEERING
     df = pd.json_normalize(saved["results"])
     df = prepare_features(df)
-
     columns_to_show = ["parameter.name", "value", "parameter.units", "value_norm", "value_std"]
 
     print("\n Przykładowe nowe cechy (wybrane kolumny) ")

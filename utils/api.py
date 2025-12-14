@@ -12,12 +12,12 @@ def safe_request(url: str,headers: dict | None = None, params: dict | None = Non
     """
     Bezpieczne wywołanie API:
     - retry + exponential backoff
-    - obsługa limitów (429)
+    - obsługa limitów
     - timeout
     - czytelne logowanie
     """
 
-    for attempt in range(1, max_retries + 1): #
+    for attempt in range(1, max_retries + 1): #Pętla sprawdza probę połączenia max 5 razy
         try:
             response = requests.get(
                 url,
@@ -27,8 +27,8 @@ def safe_request(url: str,headers: dict | None = None, params: dict | None = Non
             )
 
             # LIMIT API
-            if response.status_code == 429:
-                wait_time = backoff_factor ** attempt
+            if response.status_code == 429: #too many requests
+                wait_time = backoff_factor ** attempt #czeka attmpt^2
                 logger.warning(
                     "Limit API (429). Próba %s/%s. Czekam %ss.",
                     attempt, max_retries, wait_time
@@ -37,6 +37,9 @@ def safe_request(url: str,headers: dict | None = None, params: dict | None = Non
                 continue
 
             # Błędy serwera (retry)
+            # 500 - internal server error
+            #502 - Bad Gateway
+            #503 – Service Unavailable
             if 500 <= response.status_code < 600:
                 wait_time = backoff_factor ** attempt
                 logger.warning(
@@ -46,7 +49,7 @@ def safe_request(url: str,headers: dict | None = None, params: dict | None = Non
                 time.sleep(wait_time)
                 continue
 
-            # Inne błędy klienta – NIE retry
+            # Inne błędy klienta – NIE retry np. 400, 401, 404
             if 400 <= response.status_code < 500:
                 logger.error(
                     "Błąd klienta %s: %s",
@@ -56,7 +59,7 @@ def safe_request(url: str,headers: dict | None = None, params: dict | None = Non
 
             return response
 
-        except requests.exceptions.Timeout:
+        except requests.exceptions.Timeout: #serwer nie odpowiedział na czas
             wait_time = backoff_factor ** attempt
             logger.warning(
                 "Timeout API. Próba %s/%s. Czekam %ss.",
@@ -64,7 +67,7 @@ def safe_request(url: str,headers: dict | None = None, params: dict | None = Non
             )
             time.sleep(wait_time)
 
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException as e: #inne błędy sieciowe, np. brak internetu ,zerwane połączenie
             logger.error("Błąd połączenia API: %s", e)
             return None
 
