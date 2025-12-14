@@ -232,8 +232,6 @@ def save_current_to_db(payload: dict):
             param_name,
             m.get("value"),
             unit,
-            timestamp
-        ))
-
+            timestamp))
     conn.commit() #zapis zmian
     conn.close() #zamyka połączenie z bazą
