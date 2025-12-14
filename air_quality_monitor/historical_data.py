@@ -1,5 +1,4 @@
 import logging
-
 import requests
 from sensors import download_historical_all_sensors
 from utils.data_handler import load_json

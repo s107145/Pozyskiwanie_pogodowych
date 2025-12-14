@@ -2,7 +2,6 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 
-
 def setup_logger(
     name: str = "air_quality",
     log_dir: str = "logs",

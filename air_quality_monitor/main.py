@@ -54,7 +54,7 @@ def main():
 
     print("\n Przykładowe nowe cechy (wybrane kolumny) ")
     for param_name, group in df.groupby("parameter.name"):
-        print(f"\n--- {param_name.upper()} ---")
+        print(f"\n {param_name.upper()} ")
         print(group[columns_to_show].head(5))
 
     # 2. Monitorowanie danych aktualnych

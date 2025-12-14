@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
-
 def prepare_features(df):
     """
     1. Czyści dane (usuwa Inf, duplikaty, uzupełnia NaN średnią parametru)

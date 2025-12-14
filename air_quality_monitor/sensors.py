@@ -122,7 +122,7 @@ def download_historical_all_sensors(date_from: str, date_to: str) -> Dict:
 
     save_json_merge(payload, HISTORICAL_FILE)
     print(f"\n ZAPISANO {len(all_measurements)} pomiarów do: {HISTORICAL_FILE}")
-    print("=" * 60)
+
     return payload
 
 

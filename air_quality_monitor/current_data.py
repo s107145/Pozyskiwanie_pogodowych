@@ -1,6 +1,5 @@
 import time
 import logging
-
 from sensors import download_current_all_sensors
 from config import CURRENT_FILE
 from utils.anomalies import detect_anomalies
@@ -9,7 +8,6 @@ from utils.data_handler import save_json_merge, save_current_to_db
 
 
 logger = logging.getLogger("air_quality")
-
 
 def get_current_data():
     try:
