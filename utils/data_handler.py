@@ -4,7 +4,6 @@ import shutil
 import sqlite3
 from datetime import datetime, timezone
 import logging
-
 from air_quality_monitor.config import DB_PATH
 
 logger = logging.getLogger("air_quality")
@@ -86,7 +85,7 @@ def save_json_merge(new_payload: dict, path: str, key: str = "results"):
 
 
 def init_db():
-    os.makedirs("data", exist_ok=True)
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
