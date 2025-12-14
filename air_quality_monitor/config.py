@@ -8,18 +8,17 @@ OPENAQ_API_KEY = "a9292fce261dce7e515f3ccf8e1903314349b749539962090449c13c4a9e9d
 #identyfikator lokalizacji Opole, os. Armii Krajowej ul. Koszyka
 LOCATION_ID = 10580
 
-# Określenie folderu, w ktorym znajduje się plik skryptu
+# Tworzenie folderu, w ktorym znajduje się plik skryptu
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FOLDER = os.path.join(BASE_DIR, "data")
 
 # Utwórz folder data, jeśli nie istnieje
 os.makedirs(DATA_FOLDER, exist_ok=True)
 
-
+#Tworzenie ścieżki do konkretnych plików w folderze data
 HISTORICAL_FILE = os.path.join(DATA_FOLDER, "historical_data.json")
 CURRENT_FILE = os.path.join(DATA_FOLDER, "current_data.json")
 DB_PATH = os.path.join(DATA_FOLDER, "air_quality.db")
-
 
 
 # Progi orientacyjne (WHO 2021 / UE – w µg/m³)

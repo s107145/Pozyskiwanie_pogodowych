@@ -1,8 +1,8 @@
-from datetime import datetime
-from typing import List, Dict
+from datetime import datetime #klasa datetime z modulu datetime umożliwia pracę z datami/czasem
+from typing import List, Dict #typowanie np. lista słowników
 from config import OPENAQ_API_KEY, LOCATION_ID, HISTORICAL_FILE, CURRENT_FILE
-from utils.data_handler import  save_json_merge
-from utils.api import safe_request
+from utils.data_handler import  save_json_merge #nadpisywanie plików json
+from utils.api import safe_request #pobieranie danych z API
 
 def get_sensors_for_location(location_id: int) -> List[Dict]:
     """
@@ -11,20 +11,21 @@ def get_sensors_for_location(location_id: int) -> List[Dict]:
     """
     print(f"\nSzukam sensorów dla lokalizacji {location_id}...")
 
-    url = f"https://api.openaq.org/v3/locations/{location_id}/sensors"
+    url = f"https://api.openaq.org/v3/locations/{location_id}/sensors" #adres url
+    #Nagłówki HTTP dodane do zapytania
     headers = {
-        "X-API-Key": OPENAQ_API_KEY,
-        "Accept": "application/json",
+        "X-API-Key": OPENAQ_API_KEY, #klucz pozwala na autoryzacje i korzystanie z serwisu
+        "Accept": "application/json", #informacja, że  odp ma być w formacie JSON
     }
     params = {
-        "limit": 100,
+        "limit": 100, #pobiera max 100 sensorow na raz
     }
-
+    # wysłanie zapytania, zwraca response lub None(błąd)
     try:
         response = safe_request(url, headers=headers, params=params)
         if response is None:
             return []
-        if response.status_code == 200:
+        if response.status_code == 200: #jeśli status 200 to pobiera dane i wyświetla listę sensorów
             data = response.json()
             sensors = data.get("results", [])
             print(f"Znaleziono {len(sensors)} sensorów:")
@@ -41,14 +42,9 @@ def get_sensors_for_location(location_id: int) -> List[Dict]:
         return []
 
 
-def get_measurements_for_sensor(
-    sensor_id: int,
-    start_date: str,
-    end_date: str,
-) -> List[Dict]:
+def get_measurements_for_sensor( sensor_id: int, start_date: str,end_date: str) -> List[Dict]:
     """
-    Pobiera historyczne pomiary z jednego sensora.
-    """
+    Pobiera historyczne pomiary dla jednego sensora w przedziale dat"""
     print(f"   Pobieram pomiary z sensora #{sensor_id}...")
 
     url = f"https://api.openaq.org/v3/sensors/{sensor_id}/measurements"
@@ -59,8 +55,8 @@ def get_measurements_for_sensor(
     params = {
         "date_from": f"{start_date}T00:00:00Z",
         "date_to": f"{end_date}T23:59:59Z",
-        "limit": 1000,
-        "order_by": "datetime",
+        "limit": 1000, #limit 1000 wynika z dokumentacji Openaq
+        "order_by": "datetime", #sortowanie rosnąco wg daty
         "sort": "asc",
     }
 
@@ -84,33 +80,36 @@ def get_measurements_for_sensor(
 
 def download_historical_all_sensors(date_from: str, date_to: str) -> Dict:
     """
-    Pobiera dane historyczne ze WSZYSTKICH sensorów i WYŚWIETLA WYNIKI NATYCHMIAST.
+    Pobiera dane historyczne ze wszystkich sensorów i zapisuje je do JSON.
     """
     print(f"\n Pobieram dane historyczne {date_from} - {date_to} dla wszystkich sensorów...")
 
-    sensors = get_sensors_for_location(LOCATION_ID)
-    all_measurements = []
+    sensors = get_sensors_for_location(LOCATION_ID) #pobiera listę sensorów dla lokalizacji
+    all_measurements = [] #tworzy pustą listę na wszystkie pomiary
 
     print(f"\n Pobieranie danych z {len(sensors)} sensorów:")
-    print("-" * 60)
 
+#Iteracja po liście słowników (sensors)
     for s in sensors:
-        sensor_id = s.get("id")
-        parameter_obj = s.get("parameter", {})
+        sensor_id = s.get("id") #pobieranie id
+        parameter_obj = s.get("parameter", {})  #pobiera słownik pod kluczem "parameter"
+        # i pobiera z niego info o parametrze, jeśli nie istnieje zwraca pusty słownik
         parameter_name = parameter_obj.get("name", "nieznany").upper()
+        #ze słownika parameter_obj pobiera wartość pod kluczem "name" (nie ma -nieznany) i zapisuje duża literą np. CO
 
-        if sensor_id is None:
+
+        if sensor_id is None: #jeśli nie ma id ignoruje i przechodzi do kolejne iteracji
             continue
 
         print(f"\n Sensor #{sensor_id} ({parameter_name}):")
-        measurements = get_measurements_for_sensor(sensor_id, date_from, date_to)
+        measurements = get_measurements_for_sensor(sensor_id, date_from, date_to) #pobiera dane hist
 
-        # NATYCHMIAST WYŚWIETL PODSUMOWANIE
+        # Wyświetla podsumowanie sensora
         print_sensor_summary(measurements, sensor_id, parameter_name)
 
-        all_measurements.extend(measurements)
+        all_measurements.extend(measurements) #połączenie pomiarów w jedną listę
 
-    payload = {
+    payload = { #Słownik payload z metadanymi
         "location_id": LOCATION_ID,
         "download_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "date_from": date_from,
@@ -120,7 +119,7 @@ def download_historical_all_sensors(date_from: str, date_to: str) -> Dict:
         "results": all_measurements,
     }
 
-    save_json_merge(payload, HISTORICAL_FILE)
+    save_json_merge(payload, HISTORICAL_FILE) #zapis danych do pliku JSON
     print(f"\n ZAPISANO {len(all_measurements)} pomiarów do: {HISTORICAL_FILE}")
 
     return payload
@@ -128,10 +127,9 @@ def download_historical_all_sensors(date_from: str, date_to: str) -> Dict:
 
 def download_current_all_sensors() -> Dict:
     """
-    Pobiera AKTUALNE dane ze wszystkich sensorów lokalizacji
-    (po jednym „ostatnim zestawie” z każdego sensora) i zapisuje do CURRENT_FILE.
+    Pobiera AKTUALNE dane ze wszystkich sensorów lokalizacji, zapisuje do CURRENT_FILE.
     """
-    sensors = get_sensors_for_location(LOCATION_ID)
+    sensors = get_sensors_for_location(LOCATION_ID) #pobiera lisyę sensorów
     all_measurements = []
 
     for s in sensors:
@@ -145,9 +143,9 @@ def download_current_all_sensors() -> Dict:
             "X-API-Key": OPENAQ_API_KEY,
             "Accept": "application/json",
         }
-        params = {
+        params = { #pobieranie ostatnich pomiarów
             "limit": 100,
-            "order_by": "datetime",
+            "order_by": "datetime", #sortowanie malejące po dacie
             "sort": "desc",
         }
 
@@ -166,13 +164,13 @@ def download_current_all_sensors() -> Dict:
         except Exception as e:
             print(f"  Błąd przy pobieraniu aktualnych danych sensora {sensor_id}: {e}")
 
-    payload = {
+    payload = { #slownik z czasem pobrania i wynikami
         "location_id": LOCATION_ID,
         "download_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "results": all_measurements,
     }
 
-    save_json_merge(payload, HISTORICAL_FILE)
+    save_json_merge(payload, HISTORICAL_FILE) #zapis do pliku json
     print(f"\nZapisano aktualne dane wszystkich sensorów do: {CURRENT_FILE}")
     return payload
 

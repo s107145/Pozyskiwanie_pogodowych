@@ -1,18 +1,22 @@
-import os
-import json
-import shutil
-import sqlite3
-from datetime import datetime, timezone
-import logging
+import os #operacje na plikach i katalogach (tworzenie folderów, sprawdzanie ścieżek)
+import json # zapis i odczyt danych w formacie JSON.
+import shutil #tworzenie backup
+import sqlite3 #obsługa bazy danycch SQLite
+from datetime import datetime, timezone #klasa dayetime(operacja na czasie) timezone (strefy czasowe)
+import logging #logowanie komunikatów
 from air_quality_monitor.config import DB_PATH
 
+
+#Tworzy logger do zapisywania komunikatów w konsoli i pliku
+#Raportuje status działania programu
 logger = logging.getLogger("air_quality")
 
 
 # JSON – zapis / odczyt
-
 def save_json(data: dict, path: str):
-    """Zapisuje dane do JSON z backupem i obsługą błędów."""
+    """Zapisuje dane do JSON z backupem i obsługą błędów.
+    Jeśli plik jest uszkodzony lub nie istnieje, próbuje wczytać backup (path + ".backup").
+    Jeśli wczytanie backupu też się nie uda, zwraca None."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     backup_path = path + ".backup"
 

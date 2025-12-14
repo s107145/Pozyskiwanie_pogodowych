@@ -1,17 +1,14 @@
-import time
-import requests
-import logging
+import requests #moduł do wysylania żądań HHTP do API
+import time #moduł do obsługi czasu np. sleep
+import logging #moduł do logowania informacji, ostrzeżeń i błędów
 
+
+#Tworzy logger do zapisywania komunikatów w konsoli i pliku
+#Raportuje status działania programu
 logger = logging.getLogger("air_quality")
 
-def safe_request(
-    url: str,
-    headers: dict | None = None,
-    params: dict | None = None,
-    max_retries: int = 5,
-    backoff_factor: int = 2,
-    timeout: int = 30
-) -> requests.Response | None:
+def safe_request(url: str,headers: dict | None = None, params: dict | None = None, max_retries: int = 5,
+    backoff_factor: int = 2, timeout: int = 30) -> requests.Response | None:
     """
     Bezpieczne wywołanie API:
     - retry + exponential backoff
@@ -20,7 +17,7 @@ def safe_request(
     - czytelne logowanie
     """
 
-    for attempt in range(1, max_retries + 1):
+    for attempt in range(1, max_retries + 1): #
         try:
             response = requests.get(
                 url,
