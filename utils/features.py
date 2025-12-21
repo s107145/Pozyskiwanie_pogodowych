@@ -31,8 +31,8 @@ def prepare_features(df):
             # Feature engineering - tworzenie dodatkowych cech
             group["value_diff"] = group["value"].diff()#różnica między pomiarami (trendy)
             #Rolling mean pomaga wygładzić dane i wykryć trend zamiast pojedynczych skoków wartości.
-            group["rolling_mean_3"] = group["value"].rolling(window=3).mean() #średnia ruchoma z ost 3 pomiarów
-            group["rolling_mean_6"] = group["value"].rolling(window=6).mean() #średnia ruchoma z ost 6 pomiarów
+            group["rolling_mean_3"] = group["value"].rolling(window=3, center=True, min_periods=1).mean()
+            group["rolling_mean_6"] = group["value"].rolling( window=6, center=True, min_periods=1).mean()
 
             # Normalizacja
             scaler_norm = MinMaxScaler() #przekształca wartości do przedziału [0, 1].

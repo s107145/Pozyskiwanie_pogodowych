@@ -7,7 +7,6 @@ from utils.data_handler import save_historical_to_db
 import pandas as pd
 from utils.features import prepare_features
 
-
 def main():
 
     print("  Air Quality Monitor – OpenAQ")
@@ -29,7 +28,6 @@ def main():
         saved = get_historical_data(date_from, date_to)
 
     #  Zapis danych historycznych do SQLite
-
     save_historical_to_db(saved)  # <- tutaj zapis do bazy
     print(" Dane historyczne zapisane do bazy SQLite")
 
@@ -44,7 +42,7 @@ def main():
     #FEATURE ENGINEERING
     df = pd.json_normalize(saved["results"])
     df = prepare_features(df)
-    columns_to_show = ["parameter.name", "value", "parameter.units", "value_norm", "value_std"]
+    columns_to_show = ["parameter.name", "value", "parameter.units", "value_norm", "value_std", "rolling_mean_3", "rolling_mean_6"]
 
     print("\n Przykładowe nowe cechy (wybrane kolumny) ")
     for param_name, group in df.groupby("parameter.name"):
